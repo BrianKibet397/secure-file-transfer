@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Secure File Transfer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #f5f7fa;
+            overflow-x: hidden;
+        }
+
+        /* Navbar */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            background: #004aff;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+
+        .navbar-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .menu-toggle {
+            font-size: 24px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: background 0.3s;
+        }
+
+        .menu-toggle:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .navbar h1 {
+            font-size: 22px;
+            font-weight: 600;
+        }
+
+        .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: white;
+            color: #004aff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        .logout-btn {
+            padding: 8px 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            top: 70px;
+            left: -300px;
+            width: 280px;
+            height: calc(100vh - 70px);
+            background: white;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            transition: left 0.3s ease;
+            z-index: 999;
+            overflow-y: auto;
+        }
+
+        .sidebar.active {
+            left: 0;
+        }
+
+        .sidebar-menu {
+            padding: 20px 0;
+        }
+
+        .menu-item {
+            padding: 15px 25px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .menu-item:hover {
+            background: #f0f7ff;
+            color: #004aff;
+        }
+
+        .menu-item.active {
+            background: #004aff;
+            color: white;
+            border-right: 4px solid #0039cc;
+        }
+
+        .menu-item-icon {
+            font-size: 20px;
+            width: 24px;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-top: 70px;
+            margin-left: 0;
+            padding: 30px;
+            transition: margin-left 0.3s ease;
+            min-height: calc(100vh - 70px);
+        }
+
+        .main-content.shifted {
+            margin-left: 280px;
+        }
+
+        .content-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            display: none;
+        }
+
+        .content-card.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .form-group select,
+        .form-group input[type="file"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: 'Poppins', sans-serif;
+            transition: all 0.3s;
+            background: white;
+            cursor: pointer;
+        }
+
+        .form-group select:focus {
+            outline: none;
+            border-color: #004aff;
+            box-shadow: 0 0 0 3px rgba(0, 74, 255, 0.1);
+        }
+
+        .form-group select option {
+            padding: 10px;
+        }
+
+        .form-group select option:disabled {
+            color: #999;
+        }
+
+        .form-group input[type="text"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: 'Poppins', sans-serif;
+            transition: all 0.3s;
+        }
+
+        .form-group input[type="text"]:focus {
+            outline: none;
+            border-color: #004aff;
+            box-shadow: 0 0 0 3px rgba(0, 74, 255, 0.1);
+        }
+
+        .method-btn {
+            flex: 1;
+            padding: 10px 15px;
+            background: #f0f0f0;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: #666;
+        }
+
+        .method-btn:hover {
+            background: #e8e8e8;
+            border-color: #d0d0d0;
+        }
+
+        .method-btn.active {
+            background: #004aff;
+            border-color: #004aff;
+            color: white;
+        }
+
+        .username-suggestions {
+            margin-top: 10px;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .username-suggestions.show {
+            display: block;
+        }
+
+        .suggestion-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+
+        .suggestion-item:hover {
+            background: #f0f7ff;
+        }
+
+        .suggestion-item strong {
+            color: #004aff;
+        }
+
+        .no-suggestions {
+            padding: 15px;
+            text-align: center;
+            color: #999;
+            font-size: 13px;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input-label {
+            display: block;
+            padding: 12px 15px;
+            background: #f0f7ff;
+            border: 2px dashed #004aff;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .file-input-label:hover {
+            background: #e6f2ff;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-name {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            background: #004aff;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .btn:hover {
+            background: #0039cc;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 74, 255, 0.3);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn .loader {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid white;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.6s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        /* File List */
+        .file-list {
+            margin-top: 20px;
+        }
+
+        .file-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.3s;
+        }
+
+        .file-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .file-info {
+            flex: 1;
+        }
+
+        .file-name-text {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .file-meta {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 13px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            top: 90px;
+            right: 20px;
+            background: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            display: none;
+            align-items: center;
+            gap: 10px;
+            z-index: 1001;
+            animation: slideIn 0.3s ease-out;
+            min-width: 300px;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+            }
+            to {
+                transform: translateX(0);
+            }
+        }
+
+        .toast.success {
+            border-left: 4px solid #22c55e;
+        }
+
+        .toast.error {
+            border-left: 4px solid #ef4444;
+        }
+
+        .toast-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+        }
+
+        .toast.success .toast-icon {
+            background: #22c55e;
+        }
+
+        .toast.error .toast-icon {
+            background: #ef4444;
+        }
+
+        /* Loading Spinner */
+        .spinner-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .spinner-overlay.active {
+            display: flex;
+        }
+
+        .spinner-box {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #e0e0e0;
+            border-top-color: #004aff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .spinner-text {
+            font-weight: 600;
+            color: #333;
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2001;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 400px;
+            width: 90%;
+            animation: scaleIn 0.3s ease;
+        }
+
+        @keyframes scaleIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .modal-text {
+            margin-bottom: 20px;
+            color: #666;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 0 15px;
+            }
+
+            .navbar h1 {
+                font-size: 18px;
+            }
+
+            .user-info span {
+                display: none;
+            }
+
+            .main-content {
+                padding: 15px;
+            }
+
+            .main-content.shifted {
+                margin-left: 0;
+            }
+
+            .sidebar {
+                width: 100%;
+                left: -100%;
+            }
+
+            .sidebar.active {
+                left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <div class="navbar">
+        <div class="navbar-left">
+            <div class="menu-toggle" onclick="toggleSidebar()">☰</div>
+            <h1>🔐 Secure File Transfer</h1>
+        </div>
+        <div class="navbar-right">
+            <div class="user-info">
+                <div class="user-avatar">{{ username[0].upper() }}</div>
+                <span>{{ username }}</span>
+            </div>
+            <button class="logout-btn" onclick="showLogoutModal()">Logout</button>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-menu">
+            <div class="menu-item active" onclick="showSection('send')">
+                <span class="menu-item-icon">📤</span>
+                <span>Send File</span>
+            </div>
+            <div class="menu-item" onclick="showSection('receive')">
+                <span class="menu-item-icon">📥</span>
+                <span>Receive Files</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <!-- Send File Section -->
+        <div class="content-card active" id="sendSection">
+            <h2 class="card-title">
+                <span>📤</span>
+                Send Encrypted File
+            </h2>
+            <form id="sendForm">
+                <div class="form-group">
+                    <label for="recipientMethod">Select Recipient Method</label>
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <button type="button" class="method-btn active" id="dropdownMethodBtn" onclick="switchRecipientMethod('dropdown')">
+                            📋 Select from List
+                        </button>
+                        <button type="button" class="method-btn" id="usernameMethodBtn" onclick="switchRecipientMethod('username')">
+                            ✏️ Enter Username
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Dropdown Method -->
+                <div class="form-group" id="dropdownMethod">
+                    <label for="recipient">Select Recipient</label>
+                    <select id="recipient">
+                        <option value="">Loading users...</option>
+                    </select>
+                    <div style="margin-top: 8px; font-size: 13px; color: #666;" id="recipientInfo">
+                        Select a user to send an encrypted file
+                    </div>
+                </div>
+
+                <!-- Username Input Method -->
+                <div class="form-group" id="usernameMethod" style="display: none;">
+                    <label for="recipientUsername">Recipient Username</label>
+                    <input 
+                        type="text" 
+                        id="recipientUsername" 
+                        placeholder="Enter recipient's username..."
+                        autocomplete="off"
+                    >
+                    <div style="margin-top: 8px; font-size: 13px; color: #666;" id="usernameInfo">
+                        Type the exact username of the recipient
+                    </div>
+                    <div id="usernameSuggestions" class="username-suggestions"></div>
+                </div>
+
+                <div class="form-group">
+                    <label>Select File</label>
+                    <div class="file-input-wrapper">
+                        <label for="fileInput" class="file-input-label">
+                            📁 Click to select file or drag & drop
+                        </label>
+                        <input type="file" id="fileInput" required>
+                    </div>
+                    <div class="file-name" id="selectedFileName"></div>
+                </div>
+                <button type="submit" class="btn" id="sendBtn">🔒 Encrypt & Send</button>
+            </form>
+        </div>
+
+        <!-- Receive Files Section -->
+        <div class="content-card" id="receiveSection">
+            <h2 class="card-title">
+                <span>📥</span>
+                Received Files
+            </h2>
+            <div class="file-list" id="fileList">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📭</div>
+                    <p>No files received yet</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Spinner Overlay -->
+    <div class="spinner-overlay" id="spinnerOverlay">
+        <div class="spinner-box">
+            <div class="spinner"></div>
+            <div class="spinner-text" id="spinnerText">Encrypting file...</div>
+        </div>
+    </div>
+
+    <!-- Logout Modal -->
+    <div class="modal" id="logoutModal">
+        <div class="modal-content">
+            <h3 class="modal-title">Confirm Logout</h3>
+            <p class="modal-text">Are you sure you want to logout?</p>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeLogoutModal()">Cancel</button>
+                <button class="btn" onclick="confirmLogout()">Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <div class="toast-icon">✓</div>
+        <span id="toastMessage"></span>
+    </div>
+
+    <script>
+        let sidebarOpen = false;
+        let currentRecipientMethod = 'dropdown';
+        let allUsers = [];
+
+        function switchRecipientMethod(method) {
+            currentRecipientMethod = method;
+            
+            const dropdownMethod = document.getElementById('dropdownMethod');
+            const usernameMethod = document.getElementById('usernameMethod');
+            const dropdownBtn = document.getElementById('dropdownMethodBtn');
+            const usernameBtn = document.getElementById('usernameMethodBtn');
+            
+            if (method === 'dropdown') {
+                dropdownMethod.style.display = 'block';
+                usernameMethod.style.display = 'none';
+                dropdownBtn.classList.add('active');
+                usernameBtn.classList.remove('active');
+                document.getElementById('recipient').removeAttribute('disabled');
+                document.getElementById('recipientUsername').value = '';
+            } else {
+                dropdownMethod.style.display = 'none';
+                usernameMethod.style.display = 'block';
+                dropdownBtn.classList.remove('active');
+                usernameBtn.classList.add('active');
+                document.getElementById('recipientUsername').focus();
+            }
+        }
+
+        function toggleSidebar() {
+            sidebarOpen = !sidebarOpen;
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            
+            if (sidebarOpen) {
+                sidebar.classList.add('active');
+                if (window.innerWidth > 768) {
+                    mainContent.classList.add('shifted');
+                }
+            } else {
+                sidebar.classList.remove('active');
+                mainContent.classList.remove('shifted');
+            }
+        }
+
+        function showSection(section) {
+            const sendSection = document.getElementById('sendSection');
+            const receiveSection = document.getElementById('receiveSection');
+            const menuItems = document.querySelectorAll('.menu-item');
+            
+            menuItems.forEach(item => item.classList.remove('active'));
+            
+            if (section === 'send') {
+                sendSection.classList.add('active');
+                receiveSection.classList.remove('active');
+                menuItems[0].classList.add('active');
+            } else {
+                sendSection.classList.remove('active');
+                receiveSection.classList.add('active');
+                menuItems[1].classList.add('active');
+                loadReceivedFiles();
+            }
+            
+            if (window.innerWidth <= 768) {
+                toggleSidebar();
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            
+            toast.className = 'toast ' + type;
+            toastMessage.textContent = message;
+            toast.style.display = 'flex';
+            
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        }
+
+        function showSpinner(text = 'Processing...') {
+            document.getElementById('spinnerText').textContent = text;
+            document.getElementById('spinnerOverlay').classList.add('active');
+        }
+
+        function hideSpinner() {
+            document.getElementById('spinnerOverlay').classList.remove('active');
+        }
+
+        function showLogoutModal() {
+            document.getElementById('logoutModal').classList.add('active');
+        }
+
+        function closeLogoutModal() {
+            document.getElementById('logoutModal').classList.remove('active');
+        }
+
+        function confirmLogout() {
+            window.location.href = '/logout';
+        }
+
+        // Load users for recipient dropdown
+        async function loadUsers() {
+            try {
+                const response = await fetch('/get_users');
+                const data = await response.json();
+                
+                if (data.success) {
+                    allUsers = data.users || [];
+                    const select = document.getElementById('recipient');
+                    select.innerHTML = '<option value="">Choose a recipient...</option>';
+                    
+                    if (allUsers.length > 0) {
+                        allUsers.forEach(user => {
+                            const option = document.createElement('option');
+                            option.value = user.id;
+                            option.textContent = user.username;
+                            option.dataset.username = user.username;
+                            select.appendChild(option);
+                        });
+                    } else {
+                        const option = document.createElement('option');
+                        option.value = '';
+                        option.textContent = 'No other users available';
+                        option.disabled = true;
+                        select.appendChild(option);
+                    }
+                } else {
+                    showToast('Failed to load users', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading users:', error);
+                showToast('Error loading users list', 'error');
+            }
+        }
+
+        // Username autocomplete
+        document.getElementById('recipientUsername').addEventListener('input', function(e) {
+            const input = e.target.value.toLowerCase().trim();
+            const suggestionsDiv = document.getElementById('usernameSuggestions');
+            const usernameInfo = document.getElementById('usernameInfo');
+            
+            if (input.length === 0) {
+                suggestionsDiv.classList.remove('show');
+                usernameInfo.innerHTML = 'Type the exact username of the recipient';
+                usernameInfo.style.color = '#666';
+                return;
+            }
+            
+            const matches = allUsers.filter(user => 
+                user.username.toLowerCase().includes(input)
+            );
+            
+            if (matches.length > 0) {
+                suggestionsDiv.innerHTML = '';
+                matches.forEach(user => {
+                    const item = document.createElement('div');
+                    item.className = 'suggestion-item';
+                    
+                    // Highlight matching text
+                    const username = user.username;
+                    const index = username.toLowerCase().indexOf(input);
+                    const before = username.substring(0, index);
+                    const match = username.substring(index, index + input.length);
+                    const after = username.substring(index + input.length);
+                    
+                    item.innerHTML = `${before}<strong>${match}</strong>${after}`;
+                    item.onclick = () => selectUsername(user.username);
+                    suggestionsDiv.appendChild(item);
+                });
+                suggestionsDiv.classList.add('show');
+                
+                // Check for exact match
+                const exactMatch = matches.find(u => u.username.toLowerCase() === input);
+                if (exactMatch) {
+                    usernameInfo.innerHTML = `<span style="color: #22c55e;">✓</span> User found: <strong>${exactMatch.username}</strong>`;
+                    usernameInfo.style.color = '#22c55e';
+                } else {
+                    usernameInfo.innerHTML = `Found ${matches.length} matching user${matches.length > 1 ? 's' : ''}`;
+                    usernameInfo.style.color = '#004aff';
+                }
+            } else {
+                suggestionsDiv.innerHTML = '<div class="no-suggestions">❌ No users found</div>';
+                suggestionsDiv.classList.add('show');
+                usernameInfo.innerHTML = '⚠️ Username not found';
+                usernameInfo.style.color = '#ef4444';
+            }
+        });
+
+        function selectUsername(username) {
+            document.getElementById('recipientUsername').value = username;
+            document.getElementById('usernameSuggestions').classList.remove('show');
+            document.getElementById('usernameInfo').innerHTML = `<span style="color: #22c55e;">✓</span> File will be encrypted for <strong>${username}</strong>`;
+            document.getElementById('usernameInfo').style.color = '#22c55e';
+        }
+
+        // Close suggestions when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('#usernameMethod')) {
+                document.getElementById('usernameSuggestions').classList.remove('show');
+            }
+        });
+
+        // File input handler
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const fileName = e.target.files[0]?.name;
+            const fileSize = e.target.files[0]?.size;
+            
+            if (fileName) {
+                let sizeText = '';
+                if (fileSize) {
+                    const sizeMB = (fileSize / (1024 * 1024)).toFixed(2);
+                    const sizeKB = (fileSize / 1024).toFixed(2);
+                    sizeText = sizeMB > 1 ? ` (${sizeMB} MB)` : ` (${sizeKB} KB)`;
+                }
+                document.getElementById('selectedFileName').textContent = '✓ ' + fileName + sizeText;
+            }
+        });
+
+        // Recipient selection handler
+        document.getElementById('recipient').addEventListener('change', function(e) {
+            const recipientInfo = document.getElementById('recipientInfo');
+            const selectedOption = e.target.options[e.target.selectedIndex];
+            
+            if (e.target.value) {
+                recipientInfo.innerHTML = `
+                    <span style="color: #22c55e;">✓</span> 
+                    File will be encrypted with <strong>${selectedOption.textContent}</strong>'s public key
+                `;
+                recipientInfo.style.color = '#22c55e';
+            } else {
+                recipientInfo.textContent = 'Select a user to send an encrypted file';
+                recipientInfo.style.color = '#666';
+            }
+        });
+
+        // Send file form
+        document.getElementById('sendForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            const fileInput = document.getElementById('fileInput');
+            const sendBtn = document.getElementById('sendBtn');
+            
+            let recipientId = null;
+            let recipientName = null;
+            
+            // Get recipient based on selected method
+            if (currentRecipientMethod === 'dropdown') {
+                const recipientSelect = document.getElementById('recipient');
+                recipientId = recipientSelect.value;
+                recipientName = recipientSelect.options[recipientSelect.selectedIndex]?.text;
+                
+                if (!recipientId) {
+                    showToast('Please select a recipient from the list', 'error');
+                    recipientSelect.focus();
+                    return;
+                }
+            } else {
+                // Username method
+                const usernameInput = document.getElementById('recipientUsername');
+                const username = usernameInput.value.trim();
+                
+                if (!username) {
+                    showToast('Please enter a recipient username', 'error');
+                    usernameInput.focus();
+                    return;
+                }
+                
+                // Find user by username
+                const user = allUsers.find(u => u.username.toLowerCase() === username.toLowerCase());
+                
+                if (!user) {
+                    showToast(`User "${username}" not found`, 'error');
+                    usernameInput.focus();
+                    return;
+                }
+                
+                recipientId = user.id;
+                recipientName = user.username;
+            }
+            
+            // Validate file
+            if (!fileInput.files[0]) {
+                showToast('Please select a file', 'error');
+                fileInput.focus();
+                return;
+            }
+
+            // Check file size (50MB max)
+            const maxSize = 50 * 1024 * 1024;
+            if (fileInput.files[0].size > maxSize) {
+                showToast('File too large. Maximum size is 50MB', 'error');
+                return;
+            }
+            
+            formData.append('file', fileInput.files[0]);
+            formData.append('receiver_id', recipientId);
+            
+            // Disable button and show spinner
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '<span class="loader"></span>Encrypting...';
+            showSpinner(`Encrypting file for ${recipientName}...`);
+            
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                hideSpinner();
+                
+                if (data.success) {
+                    showToast(`File encrypted and sent to ${recipientName}!`, 'success');
+                    
+                    // Reset form
+                    document.getElementById('sendForm').reset();
+                    document.getElementById('selectedFileName').textContent = '';
+                    document.getElementById('recipientInfo').textContent = 'Select a user to send an encrypted file';
+                    document.getElementById('recipientInfo').style.color = '#666';
+                    document.getElementById('usernameInfo').innerHTML = 'Type the exact username of the recipient';
+                    document.getElementById('usernameInfo').style.color = '#666';
+                    document.getElementById('usernameSuggestions').classList.remove('show');
+                } else {
+                    showToast(data.message || 'Upload failed', 'error');
+                }
+            } catch (error) {
+                hideSpinner();
+                showToast('An error occurred while uploading', 'error');
+                console.error('Upload error:', error);
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = '🔒 Encrypt & Send';
+            }
+        });
+
+        // Load received files
+        async function loadReceivedFiles() {
+            try {
+                const response = await fetch('/get_files');
+                const data = await response.json();
+                
+                const fileList = document.getElementById('fileList');
+                
+                if (data.success && data.files.length > 0) {
+                    fileList.innerHTML = '';
+                    
+                    data.files.forEach(file => {
+                        const fileItem = document.createElement('div');
+                        fileItem.className = 'file-item';
+                        
+                        const downloadedBadge = file.downloaded 
+                            ? '<span class="badge badge-success">Downloaded</span>' 
+                            : '<span class="badge badge-info">New</span>';
+                        
+                        fileItem.innerHTML = `
+                            <div class="file-info">
+                                <div class="file-name-text">
+                                    📄 ${file.filename}
+                                    ${downloadedBadge}
+                                </div>
+                                <div class="file-meta">
+                                    From: ${file.sender} • ${file.timestamp}
+                                </div>
+                            </div>
+                            <div class="file-actions">
+                                <button class="btn btn-small" onclick="downloadFile(${file.id})">
+                                    🔓 Decrypt & Download
+                                </button>
+                            </div>
+                        `;
+                        
+                        fileList.appendChild(fileItem);
+                    });
+                } else {
+                    fileList.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📭</div>
+                            <p>No files received yet</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading files:', error);
+                showToast('Error loading files', 'error');
+            }
+        }
+
+        // Download file
+        async function downloadFile(fileId) {
+            showSpinner('Decrypting file...');
+            
+            try {
+                const response = await fetch(`/download/${fileId}`);
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const contentDisposition = response.headers.get('Content-Disposition');
+                    let filename = 'downloaded_file';
+                    
+                    if (contentDisposition) {
+                        const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
+                        if (filenameMatch) {
+                            filename = filenameMatch[1];
+                        }
+                    }
+                    
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    
+                    hideSpinner();
+                    showToast('File decrypted and downloaded successfully!', 'success');
+                    loadReceivedFiles();
+                } else {
+                    const data = await response.json();
+                    hideSpinner();
+                    showToast(data.message || 'Download failed', 'error');
+                }
+            } catch (error) {
+                hideSpinner();
+                showToast('An error occurred while downloading', 'error');
+                console.error('Download error:', error);
+            }
+        }
+
+        // Initialize
+        window.addEventListener('DOMContentLoaded', () => {
+            loadUsers();
+            toggleSidebar();
+        });
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth <= 768 && sidebarOpen) {
+                const sidebar = document.getElementById('sidebar');
+                const menuToggle = document.querySelector('.menu-toggle');
+                
+                if (!sidebar.contains(e.target) && !menuToggle.contains(e.target)) {
+                    toggleSidebar();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
