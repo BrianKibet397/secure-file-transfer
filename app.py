@@ -8,6 +8,7 @@ import io
 import database as db
 import auth
 import encryption
+import utils
 from config import get_config
 
 # Get configuration based on environment
@@ -280,10 +281,18 @@ def upload_file():
             'message': f'You must be friends with {receiver["username"]} to send files. Send a friend request first!'
         })
     
+    # Clean and sanitize filename
+    import os
+    from werkzeug.utils import secure_filename
+    
+    filename = secure_filename(file.filename)
+    if not filename:
+        filename = 'unnamed_file'
+    
     # Get file info
-    filename = file.filename
-    file_size = len(file.read())
-    file.seek(0)  # Reset file pointer
+    file.seek(0, os.SEEK_END)
+    file_size = file.tell()
+    file.seek(0)
     
     # Create file request (not uploading yet)
     request_id = db.create_file_request(
@@ -295,8 +304,7 @@ def upload_file():
     )
     
     if request_id:
-        # Store file temporarily in session or temp storage
-        # For now, we'll encrypt and store immediately but mark as pending
+        # Read and encrypt file
         file_content = file.read()
         
         # Encrypt file
@@ -318,7 +326,8 @@ def upload_file():
         return jsonify({
             'success': True, 
             'message': f'File request sent to {receiver["username"]}. Waiting for approval...',
-            'request_id': request_id
+            'request_id': request_id,
+            'filename': filename
         })
     else:
         return jsonify({'success': False, 'message': 'Failed to create file request'})
@@ -413,11 +422,14 @@ def download_file(request_id):
     # Log the action
     db.create_log(user_id, 'FILE_DOWNLOADED', f'File "{file_data["filename"]}" downloaded')
     
-    # Send file
+    # Clean filename - remove any trailing underscores or weird characters
+    filename = file_data['filename'].strip()
+    
+    # Send file with proper headers
     return send_file(
         io.BytesIO(decrypted_content),
         as_attachment=True,
-        download_name=file_data['filename'],
+        download_name=filename,
         mimetype='application/octet-stream'
     )
 
