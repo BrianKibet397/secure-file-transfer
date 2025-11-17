@@ -90,6 +90,46 @@ def init_database():
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ''')
         
+        # Create friendships table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS friendships (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                friend_id INT NOT NULL,
+                status ENUM('pending', 'accepted', 'rejected', 'blocked') DEFAULT 'pending',
+                requested_by INT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (friend_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (requested_by) REFERENCES users(id) ON DELETE CASCADE,
+                UNIQUE KEY unique_friendship (user_id, friend_id),
+                INDEX idx_user_status (user_id, status),
+                INDEX idx_friend_status (friend_id, status)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ''')
+        
+        # Create file_requests table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS file_requests (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                sender_id INT NOT NULL,
+                receiver_id INT NOT NULL,
+                filename VARCHAR(255) NOT NULL,
+                file_size BIGINT NOT NULL,
+                status ENUM('pending', 'accepted', 'rejected') DEFAULT 'pending',
+                encrypted_file LONGBLOB NULL,
+                encrypted_key TEXT NULL,
+                request_message TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                responded_at TIMESTAMP NULL,
+                FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE,
+                INDEX idx_receiver_status (receiver_id, status),
+                INDEX idx_sender (sender_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ''')
+        
         conn.commit()
         cursor.close()
         print("✓ Database tables initialized successfully")
@@ -173,10 +213,12 @@ def get_all_users_except(user_id):
     
     try:
         cursor = conn.cursor(dictionary=True)
-        cursor.execute(
-            'SELECT id, username FROM users WHERE id != %s ORDER BY username',
-            (user_id,)
-        )
+        cursor.execute('''
+            SELECT id, username, created_at
+            FROM users 
+            WHERE id != %s 
+            ORDER BY username ASC
+        ''', (user_id,))
         users = cursor.fetchall()
         cursor.close()
         return users
@@ -347,6 +389,349 @@ def get_logs_for_user(user_id, limit=50):
     except Error as e:
         print(f"Error getting logs: {e}")
         return []
+    finally:
+        conn.close()
+
+# Friendship Operations
+def send_friend_request(user_id, friend_username):
+    """Send a friend request"""
+    conn = get_db_connection()
+    if not conn:
+        return None, "Database connection failed"
+    
+    try:
+        cursor = conn.cursor(dictionary=True)
+        
+        # Get friend user
+        cursor.execute('SELECT id FROM users WHERE username = %s', (friend_username,))
+        friend = cursor.fetchone()
+        
+        if not friend:
+            return None, "User not found"
+        
+        friend_id = friend['id']
+        
+        if friend_id == user_id:
+            return None, "Cannot send friend request to yourself"
+        
+        # Check if friendship already exists
+        cursor.execute('''
+            SELECT id, status FROM friendships 
+            WHERE (user_id = %s AND friend_id = %s) 
+               OR (user_id = %s AND friend_id = %s)
+        ''', (user_id, friend_id, friend_id, user_id))
+        
+        existing = cursor.fetchone()
+        
+        if existing:
+            if existing['status'] == 'accepted':
+                return None, "Already friends"
+            elif existing['status'] == 'pending':
+                return None, "Friend request already pending"
+            elif existing['status'] == 'blocked':
+                return None, "Cannot send friend request"
+        
+        # Create friendship (bidirectional)
+        cursor.execute('''
+            INSERT INTO friendships (user_id, friend_id, status, requested_by)
+            VALUES (%s, %s, 'pending', %s)
+        ''', (user_id, friend_id, user_id))
+        
+        cursor.execute('''
+            INSERT INTO friendships (user_id, friend_id, status, requested_by)
+            VALUES (%s, %s, 'pending', %s)
+        ''', (friend_id, user_id, user_id))
+        
+        conn.commit()
+        request_id = cursor.lastrowid
+        cursor.close()
+        return request_id, "Friend request sent"
+        
+    except Error as e:
+        print(f"Error sending friend request: {e}")
+        conn.rollback()
+        return None, str(e)
+    finally:
+        conn.close()
+
+def get_friend_requests(user_id):
+    """Get pending friend requests for a user"""
+    conn = get_db_connection()
+    if not conn:
+        return []
+    
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute('''
+            SELECT f.id, u.username, u.id as user_id, f.created_at
+            FROM friendships f
+            JOIN users u ON f.friend_id = u.id
+            WHERE f.user_id = %s 
+              AND f.status = 'pending'
+              AND f.requested_by != %s
+            ORDER BY f.created_at DESC
+        ''', (user_id, user_id))
+        requests = cursor.fetchall()
+        cursor.close()
+        return requests
+    except Error as e:
+        print(f"Error getting friend requests: {e}")
+        return []
+    finally:
+        conn.close()
+
+def respond_to_friend_request(user_id, friend_id, accept=True):
+    """Accept or reject a friend request"""
+    conn = get_db_connection()
+    if not conn:
+        return False
+    
+    try:
+        cursor = conn.cursor()
+        status = 'accepted' if accept else 'rejected'
+        
+        # Update both records
+        cursor.execute('''
+            UPDATE friendships 
+            SET status = %s 
+            WHERE (user_id = %s AND friend_id = %s)
+               OR (user_id = %s AND friend_id = %s)
+        ''', (status, user_id, friend_id, friend_id, user_id))
+        
+        conn.commit()
+        cursor.close()
+        return True
+    except Error as e:
+        print(f"Error responding to friend request: {e}")
+        conn.rollback()
+        return False
+    finally:
+        conn.close()
+
+def get_friends(user_id):
+    """Get all accepted friends for a user"""
+    conn = get_db_connection()
+    if not conn:
+        return []
+    
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute('''
+            SELECT u.id, u.username, f.created_at
+            FROM friendships f
+            JOIN users u ON f.friend_id = u.id
+            WHERE f.user_id = %s AND f.status = 'accepted'
+            ORDER BY u.username ASC
+        ''', (user_id,))
+        friends = cursor.fetchall()
+        cursor.close()
+        return friends
+    except Error as e:
+        print(f"Error getting friends: {e}")
+        return []
+    finally:
+        conn.close()
+
+def are_friends(user_id, friend_id):
+    """Check if two users are friends"""
+    conn = get_db_connection()
+    if not conn:
+        return False
+    
+    try:
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT id FROM friendships 
+            WHERE user_id = %s AND friend_id = %s AND status = 'accepted'
+        ''', (user_id, friend_id))
+        result = cursor.fetchone()
+        cursor.close()
+        return result is not None
+    except Error as e:
+        print(f"Error checking friendship: {e}")
+        return False
+    finally:
+        conn.close()
+
+def remove_friend(user_id, friend_id):
+    """Remove a friend (delete friendship)"""
+    conn = get_db_connection()
+    if not conn:
+        return False
+    
+    try:
+        cursor = conn.cursor()
+        cursor.execute('''
+            DELETE FROM friendships 
+            WHERE (user_id = %s AND friend_id = %s)
+               OR (user_id = %s AND friend_id = %s)
+        ''', (user_id, friend_id, friend_id, user_id))
+        conn.commit()
+        cursor.close()
+        return True
+    except Error as e:
+        print(f"Error removing friend: {e}")
+        conn.rollback()
+        return False
+    finally:
+        conn.close()
+
+# File Request Operations
+def create_file_request(sender_id, receiver_id, filename, file_size, message=''):
+    """Create a file transfer request"""
+    conn = get_db_connection()
+    if not conn:
+        return None
+    
+    try:
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO file_requests 
+            (sender_id, receiver_id, filename, file_size, request_message)
+            VALUES (%s, %s, %s, %s, %s)
+        ''', (sender_id, receiver_id, filename, file_size, message))
+        conn.commit()
+        request_id = cursor.lastrowid
+        cursor.close()
+        return request_id
+    except Error as e:
+        print(f"Error creating file request: {e}")
+        conn.rollback()
+        return None
+    finally:
+        conn.close()
+
+def get_pending_file_requests(user_id):
+    """Get pending file requests for a user"""
+    conn = get_db_connection()
+    if not conn:
+        return []
+    
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute('''
+            SELECT fr.id, fr.filename, fr.file_size, fr.request_message, 
+                   fr.created_at, u.username as sender
+            FROM file_requests fr
+            JOIN users u ON fr.sender_id = u.id
+            WHERE fr.receiver_id = %s AND fr.status = 'pending'
+            ORDER BY fr.created_at DESC
+        ''', (user_id,))
+        requests = cursor.fetchall()
+        cursor.close()
+        return requests
+    except Error as e:
+        print(f"Error getting file requests: {e}")
+        return []
+    finally:
+        conn.close()
+
+def respond_to_file_request(request_id, user_id, accept=True):
+    """Accept or reject a file request"""
+    conn = get_db_connection()
+    if not conn:
+        return False, None
+    
+    try:
+        cursor = conn.cursor(dictionary=True)
+        
+        # Get request details
+        cursor.execute('''
+            SELECT * FROM file_requests 
+            WHERE id = %s AND receiver_id = %s AND status = 'pending'
+        ''', (request_id, user_id))
+        
+        request = cursor.fetchone()
+        if not request:
+            return False, "Request not found or already processed"
+        
+        status = 'accepted' if accept else 'rejected'
+        
+        cursor.execute('''
+            UPDATE file_requests 
+            SET status = %s, responded_at = NOW()
+            WHERE id = %s
+        ''', (status, request_id))
+        
+        conn.commit()
+        cursor.close()
+        return True, request
+    except Error as e:
+        print(f"Error responding to file request: {e}")
+        conn.rollback()
+        return False, str(e)
+    finally:
+        conn.close()
+
+def store_encrypted_file_for_request(request_id, encrypted_file, encrypted_key):
+    """Store encrypted file data for an accepted request"""
+    conn = get_db_connection()
+    if not conn:
+        return False
+    
+    try:
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE file_requests 
+            SET encrypted_file = %s, encrypted_key = %s
+            WHERE id = %s
+        ''', (encrypted_file, encrypted_key, request_id))
+        conn.commit()
+        cursor.close()
+        return True
+    except Error as e:
+        print(f"Error storing encrypted file: {e}")
+        conn.rollback()
+        return False
+    finally:
+        conn.close()
+
+def get_accepted_files(user_id):
+    """Get accepted files ready for download"""
+    conn = get_db_connection()
+    if not conn:
+        return []
+    
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute('''
+            SELECT fr.id, fr.filename, fr.file_size, fr.created_at, 
+                   fr.responded_at, u.username as sender,
+                   (fr.encrypted_file IS NOT NULL) as ready_to_download
+            FROM file_requests fr
+            JOIN users u ON fr.sender_id = u.id
+            WHERE fr.receiver_id = %s AND fr.status = 'accepted'
+            ORDER BY fr.responded_at DESC
+        ''', (user_id,))
+        files = cursor.fetchall()
+        cursor.close()
+        return files
+    except Error as e:
+        print(f"Error getting accepted files: {e}")
+        return []
+    finally:
+        conn.close()
+
+def get_file_request_for_download(request_id, user_id):
+    """Get file request data for download"""
+    conn = get_db_connection()
+    if not conn:
+        return None
+    
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute('''
+            SELECT fr.filename, fr.encrypted_file, fr.encrypted_key, u.private_key
+            FROM file_requests fr
+            JOIN users u ON u.id = %s
+            WHERE fr.id = %s AND fr.receiver_id = %s AND fr.status = 'accepted'
+        ''', (user_id, request_id, user_id))
+        file_data = cursor.fetchone()
+        cursor.close()
+        return file_data
+    except Error as e:
+        print(f"Error getting file for download: {e}")
+        return None
     finally:
         conn.close()
 

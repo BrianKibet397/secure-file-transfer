@@ -55,6 +55,42 @@ CREATE TABLE IF NOT EXISTS logs (
     INDEX idx_action (action)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Create friendships table
+CREATE TABLE IF NOT EXISTS friendships (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    friend_id INT NOT NULL,
+    status ENUM('pending', 'accepted', 'rejected', 'blocked') DEFAULT 'pending',
+    requested_by INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (friend_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (requested_by) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_friendship (user_id, friend_id),
+    INDEX idx_user_status (user_id, status),
+    INDEX idx_friend_status (friend_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Create file_requests table
+CREATE TABLE IF NOT EXISTS file_requests (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    sender_id INT NOT NULL,
+    receiver_id INT NOT NULL,
+    filename VARCHAR(255) NOT NULL,
+    file_size BIGINT NOT NULL,
+    status ENUM('pending', 'accepted', 'rejected') DEFAULT 'pending',
+    encrypted_file LONGBLOB NULL,
+    encrypted_key TEXT NULL,
+    request_message TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    responded_at TIMESTAMP NULL,
+    FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_receiver_status (receiver_id, status),
+    INDEX idx_sender (sender_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Display success message
 SELECT 'Database setup completed successfully!' AS Status;
 

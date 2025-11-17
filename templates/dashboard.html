@@ -314,6 +314,131 @@
             font-size: 13px;
         }
 
+        /* Friend/Request Cards */
+        .request-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.3s;
+            border-left: 4px solid #004aff;
+        }
+
+        .request-card:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .request-card.file-request {
+            border-left-color: #f59e0b;
+        }
+
+        .request-info {
+            flex: 1;
+        }
+
+        .request-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+            font-size: 15px;
+        }
+
+        .request-meta {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .request-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-accept {
+            background: #22c55e;
+        }
+
+        .btn-accept:hover {
+            background: #16a34a;
+        }
+
+        .btn-reject {
+            background: #ef4444;
+        }
+
+        .btn-reject:hover {
+            background: #dc2626;
+        }
+
+        .friend-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.3s;
+        }
+
+        .friend-card:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .friend-avatar {
+            width: 50px;
+            height: 50px;
+            background: #004aff;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 20px;
+            margin-right: 15px;
+        }
+
+        .friend-info {
+            flex: 1;
+        }
+
+        .friend-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .friend-since {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .btn-remove {
+            background: #6c757d;
+            padding: 8px 16px;
+            font-size: 13px;
+        }
+
+        .btn-remove:hover {
+            background: #5a6268;
+        }
+
+        .file-request-message {
+            background: #fffbeb;
+            border-left: 3px solid #f59e0b;
+            padding: 10px 15px;
+            margin-top: 10px;
+            border-radius: 5px;
+            font-size: 13px;
+            color: #92400e;
+        }
+
         .file-input-wrapper {
             position: relative;
             overflow: hidden;
@@ -447,9 +572,18 @@
             margin-left: 10px;
         }
 
-        .badge-success {
-            background: #d1fae5;
-            color: #065f46;
+        .badge-count {
+            background: #ef4444;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: auto;
+        }
+
+        .badge-count:empty {
+            display: none;
         }
 
         .badge-info {
@@ -671,21 +805,84 @@
     <!-- Sidebar -->
     <div class="sidebar" id="sidebar">
         <div class="sidebar-menu">
-            <div class="menu-item active" onclick="showSection('send')">
+            <div class="menu-item active" onclick="showSection('friends')">
+                <span class="menu-item-icon">👥</span>
+                <span>Friends</span>
+                <span class="badge-count" id="friendRequestBadge"></span>
+            </div>
+            <div class="menu-item" onclick="showSection('send')">
                 <span class="menu-item-icon">📤</span>
                 <span>Send File</span>
             </div>
+            <div class="menu-item" onclick="showSection('requests')">
+                <span class="menu-item-icon">📬</span>
+                <span>File Requests</span>
+                <span class="badge-count" id="fileRequestBadge"></span>
+            </div>
             <div class="menu-item" onclick="showSection('receive')">
                 <span class="menu-item-icon">📥</span>
-                <span>Receive Files</span>
+                <span>My Files</span>
             </div>
         </div>
     </div>
 
     <!-- Main Content -->
     <div class="main-content" id="mainContent">
+        <!-- Friends Section -->
+        <div class="content-card active" id="friendsSection">
+            <h2 class="card-title">
+                <span>👥</span>
+                Friends Management
+            </h2>
+
+            <!-- Add Friend -->
+            <div style="background: #f0f7ff; padding: 20px; border-radius: 10px; margin-bottom: 30px;">
+                <h3 style="margin-bottom: 15px; font-size: 16px; color: #333;">Add New Friend</h3>
+                <form id="addFriendForm" style="display: flex; gap: 10px;">
+                    <input 
+                        type="text" 
+                        id="friendUsername" 
+                        placeholder="Enter username..."
+                        style="flex: 1; padding: 12px 15px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 14px; font-family: 'Poppins', sans-serif;"
+                        required
+                    >
+                    <button type="submit" class="btn" style="padding: 12px 24px;">
+                        ➕ Add Friend
+                    </button>
+                </form>
+            </div>
+
+            <!-- Friend Requests -->
+            <div style="margin-bottom: 30px;">
+                <h3 style="margin-bottom: 15px; font-size: 18px; color: #333; display: flex; align-items: center; gap: 10px;">
+                    📬 Pending Friend Requests
+                    <span class="badge badge-info" id="requestCount" style="font-size: 12px;"></span>
+                </h3>
+                <div id="friendRequestsList">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">✉️</div>
+                        <p>No pending friend requests</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Friends List -->
+            <div>
+                <h3 style="margin-bottom: 15px; font-size: 18px; color: #333; display: flex; align-items: center; gap: 10px;">
+                    ✓ My Friends
+                    <span class="badge badge-success" id="friendCount" style="font-size: 12px;"></span>
+                </h3>
+                <div id="friendsList">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">👥</div>
+                        <p>No friends yet. Add someone above!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Send File Section -->
-        <div class="content-card active" id="sendSection">
+        <div class="content-card" id="sendSection">
             <h2 class="card-title">
                 <span>📤</span>
                 Send Encrypted File
@@ -741,6 +938,23 @@
                 </div>
                 <button type="submit" class="btn" id="sendBtn">🔒 Encrypt & Send</button>
             </form>
+        </div>
+
+        <!-- File Requests Section -->
+        <div class="content-card" id="requestsSection">
+            <h2 class="card-title">
+                <span>📬</span>
+                Incoming File Requests
+            </h2>
+            <p style="color: #666; margin-bottom: 20px;">
+                Review and approve files that friends want to send you
+            </p>
+            <div id="fileRequestsList">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📭</div>
+                    <p>No pending file requests</p>
+                </div>
+            </div>
         </div>
 
         <!-- Receive Files Section -->
@@ -830,20 +1044,37 @@
         }
 
         function showSection(section) {
+            const friendsSection = document.getElementById('friendsSection');
             const sendSection = document.getElementById('sendSection');
+            const requestsSection = document.getElementById('requestsSection');
             const receiveSection = document.getElementById('receiveSection');
             const menuItems = document.querySelectorAll('.menu-item');
             
+            // Hide all sections
+            [friendsSection, sendSection, requestsSection, receiveSection].forEach(s => {
+                if (s) s.classList.remove('active');
+            });
+            
+            // Remove active from all menu items
             menuItems.forEach(item => item.classList.remove('active'));
             
-            if (section === 'send') {
-                sendSection.classList.add('active');
-                receiveSection.classList.remove('active');
+            // Show selected section
+            if (section === 'friends') {
+                friendsSection.classList.add('active');
                 menuItems[0].classList.add('active');
-            } else {
-                sendSection.classList.remove('active');
-                receiveSection.classList.add('active');
+                loadFriendRequests();
+                loadFriends();
+            } else if (section === 'send') {
+                sendSection.classList.add('active');
                 menuItems[1].classList.add('active');
+                loadUsers();
+            } else if (section === 'requests') {
+                requestsSection.classList.add('active');
+                menuItems[2].classList.add('active');
+                loadFileRequests();
+            } else {
+                receiveSection.classList.add('active');
+                menuItems[3].classList.add('active');
                 loadReceivedFiles();
             }
             
@@ -1221,8 +1452,280 @@
         // Initialize
         window.addEventListener('DOMContentLoaded', () => {
             loadUsers();
+            loadFriendRequests();
+            loadFriends();
+            loadFileRequests();
             toggleSidebar();
+            
+            // Refresh counts every 30 seconds
+            setInterval(() => {
+                updateNotificationBadges();
+            }, 30000);
         });
+
+        // Friend Management Functions
+        document.getElementById('addFriendForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const usernameInput = document.getElementById('friendUsername');
+            const username = usernameInput.value.trim();
+            
+            if (!username) {
+                showToast('Please enter a username', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/send_friend_request', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ username })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    usernameInput.value = '';
+                    loadFriends();
+                } else {
+                    showToast(data.message, 'error');
+                }
+            } catch (error) {
+                showToast('Error sending friend request', 'error');
+                console.error(error);
+            }
+        });
+
+        async function loadFriendRequests() {
+            try {
+                const response = await fetch('/get_friend_requests');
+                const data = await response.json();
+                
+                const requestsList = document.getElementById('friendRequestsList');
+                const badge = document.getElementById('friendRequestBadge');
+                const count = document.getElementById('requestCount');
+                
+                if (data.success && data.requests && data.requests.length > 0) {
+                    requestsList.innerHTML = '';
+                    count.textContent = data.requests.length;
+                    badge.textContent = data.requests.length;
+                    
+                    data.requests.forEach(req => {
+                        const card = document.createElement('div');
+                        card.className = 'request-card';
+                        card.innerHTML = `
+                            <div style="display: flex; align-items: center; flex: 1;">
+                                <div class="friend-avatar">${req.username[0].toUpperCase()}</div>
+                                <div class="request-info">
+                                    <div class="request-title">👤 ${req.username}</div>
+                                    <div class="request-meta">Sent ${req.created_at}</div>
+                                </div>
+                            </div>
+                            <div class="request-actions">
+                                <button class="btn btn-small btn-accept" onclick="respondToFriendRequest(${req.user_id}, true)">
+                                    ✓ Accept
+                                </button>
+                                <button class="btn btn-small btn-reject" onclick="respondToFriendRequest(${req.user_id}, false)">
+                                    ✗ Reject
+                                </button>
+                            </div>
+                        `;
+                        requestsList.appendChild(card);
+                    });
+                } else {
+                    requestsList.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">✉️</div>
+                            <p>No pending friend requests</p>
+                        </div>
+                    `;
+                    count.textContent = '';
+                    badge.textContent = '';
+                }
+            } catch (error) {
+                console.error('Error loading friend requests:', error);
+            }
+        }
+
+        async function respondToFriendRequest(friendId, accept) {
+            try {
+                const response = await fetch('/respond_friend_request', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ friend_id: friendId, accept })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    loadFriendRequests();
+                    loadFriends();
+                } else {
+                    showToast(data.message, 'error');
+                }
+            } catch (error) {
+                showToast('Error processing request', 'error');
+                console.error(error);
+            }
+        }
+
+        async function loadFriends() {
+            try {
+                const response = await fetch('/get_friends');
+                const data = await response.json();
+                
+                const friendsList = document.getElementById('friendsList');
+                const count = document.getElementById('friendCount');
+                
+                if (data.success && data.friends && data.friends.length > 0) {
+                    friendsList.innerHTML = '';
+                    count.textContent = data.count;
+                    
+                    data.friends.forEach(friend => {
+                        const card = document.createElement('div');
+                        card.className = 'friend-card';
+                        card.innerHTML = `
+                            <div style="display: flex; align-items: center; flex: 1;">
+                                <div class="friend-avatar">${friend.username[0].toUpperCase()}</div>
+                                <div class="friend-info">
+                                    <div class="friend-name">${friend.username}</div>
+                                    <div class="friend-since">Friends since ${friend.created_at}</div>
+                                </div>
+                            </div>
+                            <button class="btn btn-small btn-remove" onclick="removeFriend(${friend.id}, '${friend.username}')">
+                                Remove
+                            </button>
+                        `;
+                        friendsList.appendChild(card);
+                    });
+                } else {
+                    friendsList.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">👥</div>
+                            <p>No friends yet. Add someone above!</p>
+                        </div>
+                    `;
+                    count.textContent = '';
+                }
+            } catch (error) {
+                console.error('Error loading friends:', error);
+            }
+        }
+
+        async function removeFriend(friendId, friendName) {
+            if (!confirm(`Remove ${friendName} from your friends list?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/remove_friend', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ friend_id: friendId })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast(`${friendName} removed from friends`, 'success');
+                    loadFriends();
+                } else {
+                    showToast(data.message, 'error');
+                }
+            } catch (error) {
+                showToast('Error removing friend', 'error');
+                console.error(error);
+            }
+        }
+
+        // File Request Functions
+        async function loadFileRequests() {
+            try {
+                const response = await fetch('/get_file_requests');
+                const data = await response.json();
+                
+                const requestsList = document.getElementById('fileRequestsList');
+                const badge = document.getElementById('fileRequestBadge');
+                
+                if (data.success && data.requests && data.requests.length > 0) {
+                    requestsList.innerHTML = '';
+                    badge.textContent = data.requests.length;
+                    
+                    data.requests.forEach(req => {
+                        const card = document.createElement('div');
+                        card.className = 'request-card file-request';
+                        
+                        let messageHtml = '';
+                        if (req.request_message) {
+                            messageHtml = `<div class="file-request-message">💬 "${req.request_message}"</div>`;
+                        }
+                        
+                        card.innerHTML = `
+                            <div class="request-info" style="flex: 1;">
+                                <div class="request-title">📄 ${req.filename}</div>
+                                <div class="request-meta">
+                                    From: <strong>${req.sender}</strong> • 
+                                    Size: ${req.file_size_formatted} • 
+                                    ${req.created_at}
+                                </div>
+                                ${messageHtml}
+                            </div>
+                            <div class="request-actions">
+                                <button class="btn btn-small btn-accept" onclick="respondToFileRequest(${req.id}, true)">
+                                    ✓ Accept
+                                </button>
+                                <button class="btn btn-small btn-reject" onclick="respondToFileRequest(${req.id}, false)">
+                                    ✗ Reject
+                                </button>
+                            </div>
+                        `;
+                        requestsList.appendChild(card);
+                    });
+                } else {
+                    requestsList.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📭</div>
+                            <p>No pending file requests</p>
+                        </div>
+                    `;
+                    badge.textContent = '';
+                }
+            } catch (error) {
+                console.error('Error loading file requests:', error);
+            }
+        }
+
+        async function respondToFileRequest(requestId, accept) {
+            try {
+                const response = await fetch('/respond_file_request', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ request_id: requestId, accept })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    loadFileRequests();
+                    if (accept) {
+                        loadReceivedFiles();
+                    }
+                } else {
+                    showToast(data.message, 'error');
+                }
+            } catch (error) {
+                showToast('Error processing file request', 'error');
+                console.error(error);
+            }
+        }
+
+        function updateNotificationBadges() {
+            loadFriendRequests();
+            loadFileRequests();
+        }
 
         // Close sidebar when clicking outside on mobile
         document.addEventListener('click', (e) => {
